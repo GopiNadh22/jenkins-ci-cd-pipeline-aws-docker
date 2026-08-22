@@ -8,18 +8,18 @@ pipeline {
         choice(
             name: 'action',
             choices: 'create\nrollback',
-            description: 'Create/rollback of the deployment'
+            description: 'Create or rollback the deployment'
         )
 
         string(
             name: 'ImageName',
-            description: 'Name of the docker build',
+            description: 'Name of the Docker image',
             defaultValue: 'kubernetes-configmap-reload'
         )
 
         string(
             name: 'ImageTag',
-            description: 'Name of the docker build',
+            description: 'Docker image tag',
             defaultValue: 'v1'
         )
 
@@ -31,7 +31,7 @@ pipeline {
 
         string(
             name: 'docker_repo',
-            description: 'Name of docker repository',
+            description: 'Name of Docker repository',
             defaultValue: 'praveensingam1994'
         )
     }
@@ -49,12 +49,11 @@ pipeline {
 
             steps {
                 gitCheckout(
-                    branch: 'main',
-                    url: 'https://github.com/GopiNadh22/jenkins-ci-cd-pipeline-aws-docker.git'
+                    branch: "main",
+                    url: "https://github.com/GopiNadh22/jenkins-ci-cd-pipeline-aws-docker.git"
                 )
             }
         }
-
 
         stage('Build-Maven') {
             when {
@@ -64,9 +63,6 @@ pipeline {
             steps {
                 dir("${params.AppName}") {
                     sh '''
-                        export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
-                        export PATH=$JAVA_HOME/bin:$PATH
-
                         echo "===== JAVA VERSION ====="
                         java -version
                         javac -version
@@ -80,7 +76,6 @@ pipeline {
                 }
             }
         }
-
 
         stage('DockerBuild and Push') {
             when {
@@ -97,7 +92,6 @@ pipeline {
             }
         }
 
-
         stage('Docker-CleanUP') {
             when {
                 expression { params.action == 'create' }
@@ -111,7 +105,6 @@ pipeline {
             }
         }
 
-
         stage('Ansible Setup') {
             when {
                 expression { params.action == 'create' }
@@ -119,47 +112,53 @@ pipeline {
 
             steps {
                 sh '''
-                    ansible-playbook ${WORKSPACE}/kubernetes-configmap-reload/server_setup.yml
+                    ansible-playbook \
+                    ${WORKSPACE}/kubernetes-configmap-reload/server_setup.yml
                 '''
             }
         }
 
-
-        stage('Create deployment') {
+        stage('Create Deployment') {
             when {
                 expression { params.action == 'create' }
             }
 
             steps {
                 sh '''
-                    echo ${WORKSPACE}
+                    echo "Workspace: ${WORKSPACE}"
 
-                    kubectl create -f ${WORKSPACE}/kubernetes-configmap-reload/kubernetes-configmap.yml
+                    kubectl apply -f \
+                    ${WORKSPACE}/kubernetes-configmap-reload/kubernetes-configmap.yml
                 '''
             }
         }
 
-
-        stage('wait_for_pods') {
+        stage('Wait for Pods') {
             when {
                 expression { params.action == 'create' }
             }
 
             steps {
-                sh 'sleep 300'
+                sh '''
+                    kubectl rollout status \
+                    deployment/${AppName} \
+                    --timeout=300s
+                '''
             }
         }
 
-
-        stage('rollback deployment') {
+        stage('Rollback Deployment') {
             when {
                 expression { params.action == 'rollback' }
             }
 
             steps {
                 sh '''
-                    kubectl delete deploy ${params.AppName}
-                    kubectl delete svc ${params.AppName}
+                    kubectl delete deployment ${AppName} \
+                    --ignore-not-found=true
+
+                    kubectl delete service ${AppName} \
+                    --ignore-not-found=true
                 '''
             }
         }
