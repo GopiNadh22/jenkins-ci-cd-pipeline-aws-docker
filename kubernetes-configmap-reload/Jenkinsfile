@@ -14,32 +14,34 @@ pipeline {
 
         string(
             name: 'ImageName',
-            description: 'Name of the Docker image',
-            defaultValue: 'kubernetes-configmap-reload'
+            defaultValue: 'kubernetes-configmap-reload',
+            description: 'Name of the Docker image'
         )
 
         string(
             name: 'ImageTag',
-            description: 'Docker image tag',
-            defaultValue: 'v1'
+            defaultValue: 'v1',
+            description: 'Docker image tag'
         )
 
         string(
             name: 'AppName',
-            description: 'Name of the Application',
-            defaultValue: 'kubernetes-configmap-reload'
+            defaultValue: 'kubernetes-configmap-reload',
+            description: 'Name of the Application'
         )
 
         string(
             name: 'docker_repo',
-            description: 'Docker Hub username',
-            defaultValue: 'gopinadh66'
+            defaultValue: 'gopinadh66',
+            description: 'Docker Hub username'
         )
     }
+
 
     tools {
         maven 'maven3'
     }
+
 
     stages {
 
@@ -52,6 +54,7 @@ pipeline {
             }
 
             steps {
+
                 gitCheckout(
                     branch: 'main',
                     url: 'https://github.com/GopiNadh22/jenkins-ci-cd-pipeline-aws-docker.git'
@@ -69,6 +72,7 @@ pipeline {
             }
 
             steps {
+
                 dir("${params.AppName}") {
 
                     sh '''
@@ -96,7 +100,7 @@ pipeline {
         }
 
 
-        stage('DockerBuild and Push') {
+        stage('Docker Build and Push') {
 
             when {
                 expression {
@@ -105,18 +109,20 @@ pipeline {
             }
 
             steps {
+
                 dir("${params.AppName}") {
 
                     dockerBuild(
                         "${params.ImageName}",
-                        "${params.docker_repo}"
+                        "${params.docker_repo}",
+                        "${params.ImageTag}"
                     )
                 }
             }
         }
 
 
-        stage('Docker-CleanUP') {
+        stage('Docker Cleanup') {
 
             when {
                 expression {
@@ -125,9 +131,11 @@ pipeline {
             }
 
             steps {
+
                 dockerCleanup(
                     "${params.ImageName}",
-                    "${params.docker_repo}"
+                    "${params.docker_repo}",
+                    "${params.ImageTag}"
                 )
             }
         }
@@ -142,14 +150,15 @@ pipeline {
             }
 
             steps {
-                sh '''
+
+                sh """
                     echo "======================================"
                     echo "ANSIBLE SETUP"
                     echo "======================================"
 
                     ansible-playbook \
                     ${WORKSPACE}/kubernetes-configmap-reload/server_setup.yml
-                '''
+                """
             }
         }
 
@@ -163,14 +172,15 @@ pipeline {
             }
 
             steps {
-                sh '''
+
+                sh """
                     echo "======================================"
                     echo "KUBERNETES DEPLOYMENT"
                     echo "======================================"
 
                     kubectl apply -f \
                     ${WORKSPACE}/kubernetes-configmap-reload/kubernetes-configmap.yml
-                '''
+                """
             }
         }
 
@@ -184,15 +194,16 @@ pipeline {
             }
 
             steps {
-                sh '''
+
+                sh """
                     echo "======================================"
                     echo "WAITING FOR DEPLOYMENT"
                     echo "======================================"
 
                     kubectl rollout status \
-                    deployment/${AppName} \
+                    deployment/${params.AppName} \
                     --timeout=300s
-                '''
+                """
             }
         }
 
@@ -206,17 +217,18 @@ pipeline {
             }
 
             steps {
-                sh '''
+
+                sh """
                     echo "======================================"
                     echo "ROLLBACK DEPLOYMENT"
                     echo "======================================"
 
-                    kubectl delete deployment ${AppName} \
+                    kubectl delete deployment ${params.AppName} \
                     --ignore-not-found=true
 
-                    kubectl delete service ${AppName} \
+                    kubectl delete service ${params.AppName} \
                     --ignore-not-found=true
-                '''
+                """
             }
         }
     }
@@ -225,12 +237,15 @@ pipeline {
     post {
 
         success {
+
             echo "======================================"
             echo "PIPELINE COMPLETED SUCCESSFULLY"
             echo "======================================"
         }
 
+
         failure {
+
             echo "======================================"
             echo "PIPELINE FAILED"
             echo "CHECK THE FAILED STAGE"
