@@ -37,19 +37,11 @@ pipeline {
         )
     }
 
-
     tools {
         maven 'maven3'
     }
 
-
     stages {
-
-        /*
-        ======================================
-        STAGE 1: GIT CHECKOUT
-        ======================================
-        */
 
         stage('Git-Checkout') {
 
@@ -68,12 +60,6 @@ pipeline {
             }
         }
 
-
-        /*
-        ======================================
-        STAGE 2: MAVEN BUILD
-        ======================================
-        */
 
         stage('Build-Maven') {
 
@@ -95,13 +81,11 @@ pipeline {
                         java -version
                         javac -version
 
-
                         echo "======================================"
                         echo "MAVEN VERSION"
                         echo "======================================"
 
                         mvn --version
-
 
                         echo "======================================"
                         echo "MAVEN BUILD"
@@ -113,12 +97,6 @@ pipeline {
             }
         }
 
-
-        /*
-        ======================================
-        STAGE 3: DOCKER BUILD AND PUSH
-        ======================================
-        */
 
         stage('DockerBuild and Push') {
 
@@ -142,12 +120,6 @@ pipeline {
         }
 
 
-        /*
-        ======================================
-        STAGE 4: DOCKER CLEANUP
-        ======================================
-        */
-
         stage('Docker-CleanUP') {
 
             when {
@@ -166,12 +138,6 @@ pipeline {
             }
         }
 
-
-        /*
-        ======================================
-        STAGE 5: ANSIBLE SETUP
-        ======================================
-        */
 
         stage('Ansible Setup') {
 
@@ -195,12 +161,6 @@ pipeline {
         }
 
 
-        /*
-        ======================================
-        STAGE 6: KUBERNETES DEPLOYMENT
-        ======================================
-        */
-
         stage('Create Deployment') {
 
             when {
@@ -223,12 +183,6 @@ pipeline {
         }
 
 
-        /*
-        ======================================
-        STAGE 7: WAIT FOR PODS
-        ======================================
-        */
-
         stage('Wait for Pods') {
 
             when {
@@ -239,24 +193,18 @@ pipeline {
 
             steps {
 
-                sh '''
+                sh """
                     echo "======================================"
                     echo "WAITING FOR DEPLOYMENT"
                     echo "======================================"
 
                     kubectl rollout status \
-                    deployment/${AppName} \
+                    deployment/${params.AppName} \
                     --timeout=300s
-                '''
+                """
             }
         }
 
-
-        /*
-        ======================================
-        STAGE 8: ROLLBACK
-        ======================================
-        */
 
         stage('Rollback Deployment') {
 
@@ -268,27 +216,21 @@ pipeline {
 
             steps {
 
-                sh '''
+                sh """
                     echo "======================================"
                     echo "ROLLBACK DEPLOYMENT"
                     echo "======================================"
 
-                    kubectl delete deployment ${AppName} \
+                    kubectl delete deployment ${params.AppName} \
                     --ignore-not-found=true
 
-                    kubectl delete service ${AppName} \
+                    kubectl delete service ${params.AppName} \
                     --ignore-not-found=true
-                '''
+                """
             }
         }
     }
 
-
-    /*
-    ======================================
-    PIPELINE RESULT
-    ======================================
-    */
 
     post {
 
