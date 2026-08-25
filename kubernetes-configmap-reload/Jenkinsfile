@@ -32,7 +32,7 @@ pipeline {
 
         string(
             name: 'docker_repo',
-            description: 'Name of Docker repository',
+            description: 'Docker Hub username',
             defaultValue: 'gopinadh66'
         )
     }
@@ -52,7 +52,6 @@ pipeline {
             }
 
             steps {
-
                 gitCheckout(
                     branch: 'main',
                     url: 'https://github.com/GopiNadh22/jenkins-ci-cd-pipeline-aws-docker.git'
@@ -70,34 +69,27 @@ pipeline {
             }
 
             steps {
-
                 dir("${params.AppName}") {
 
                     sh '''
-                        echo "=============================="
-                        echo "       ENVIRONMENT CHECK"
-                        echo "=============================="
+                        echo "======================================"
+                        echo "JAVA VERSION"
+                        echo "======================================"
 
-                        echo "===== PATH ====="
-                        echo "$PATH"
-
-                        echo "===== JAVA ====="
-                        which java
                         java -version
-
-                        echo "===== JAVAC ====="
-                        which javac
                         javac -version
 
-                        echo "===== MAVEN ====="
-                        which mvn
+                        echo "======================================"
+                        echo "MAVEN VERSION"
+                        echo "======================================"
+
                         mvn --version
 
-                        echo "=============================="
-                        echo "       MAVEN BUILD"
-                        echo "=============================="
+                        echo "======================================"
+                        echo "MAVEN BUILD"
+                        echo "======================================"
 
-                        mvn clean package -DskipTests
+                        mvn clean package -Dmaven.test.skip=true
                     '''
                 }
             }
@@ -113,7 +105,6 @@ pipeline {
             }
 
             steps {
-
                 dir("${params.AppName}") {
 
                     dockerBuild(
@@ -134,7 +125,6 @@ pipeline {
             }
 
             steps {
-
                 dockerCleanup(
                     "${params.ImageName}",
                     "${params.docker_repo}"
@@ -152,11 +142,10 @@ pipeline {
             }
 
             steps {
-
                 sh '''
-                    echo "=============================="
-                    echo "       ANSIBLE SETUP"
-                    echo "=============================="
+                    echo "======================================"
+                    echo "ANSIBLE SETUP"
+                    echo "======================================"
 
                     ansible-playbook \
                     ${WORKSPACE}/kubernetes-configmap-reload/server_setup.yml
@@ -174,14 +163,10 @@ pipeline {
             }
 
             steps {
-
                 sh '''
-                    echo "=============================="
-                    echo "       KUBERNETES DEPLOYMENT"
-                    echo "=============================="
-
-                    echo "Workspace: ${WORKSPACE}"
-                    echo "Application: ${AppName}"
+                    echo "======================================"
+                    echo "KUBERNETES DEPLOYMENT"
+                    echo "======================================"
 
                     kubectl apply -f \
                     ${WORKSPACE}/kubernetes-configmap-reload/kubernetes-configmap.yml
@@ -199,11 +184,10 @@ pipeline {
             }
 
             steps {
-
                 sh '''
-                    echo "=============================="
-                    echo "       WAITING FOR PODS"
-                    echo "=============================="
+                    echo "======================================"
+                    echo "WAITING FOR DEPLOYMENT"
+                    echo "======================================"
 
                     kubectl rollout status \
                     deployment/${AppName} \
@@ -222,19 +206,16 @@ pipeline {
             }
 
             steps {
-
                 sh '''
-                    echo "=============================="
-                    echo "       ROLLBACK DEPLOYMENT"
-                    echo "=============================="
+                    echo "======================================"
+                    echo "ROLLBACK DEPLOYMENT"
+                    echo "======================================"
 
                     kubectl delete deployment ${AppName} \
                     --ignore-not-found=true
 
                     kubectl delete service ${AppName} \
                     --ignore-not-found=true
-
-                    echo "Rollback completed successfully"
                 '''
             }
         }
@@ -244,16 +225,16 @@ pipeline {
     post {
 
         success {
-            echo "================================="
+            echo "======================================"
             echo "PIPELINE COMPLETED SUCCESSFULLY"
-            echo "================================="
+            echo "======================================"
         }
 
         failure {
-            echo "================================="
+            echo "======================================"
             echo "PIPELINE FAILED"
-            echo "Check the failed stage logs."
-            echo "================================="
+            echo "CHECK THE FAILED STAGE"
+            echo "======================================"
         }
     }
 }
