@@ -5,6 +5,7 @@ pipeline {
     agent any
 
     parameters {
+
         choice(
             name: 'action',
             choices: 'create\nrollback',
@@ -31,7 +32,7 @@ pipeline {
 
         string(
             name: 'docker_repo',
-            description: 'Name of Docker repository',
+            description: 'Docker Hub username',
             defaultValue: 'gopinadh66'
         )
     }
@@ -44,41 +45,36 @@ pipeline {
 
         stage('Git-Checkout') {
             when {
-                expression { params.action == 'create' }
+                expression {
+                    params.action == 'create'
+                }
             }
 
             steps {
                 gitCheckout(
-                    branch: "main",
-                    url: "https://github.com/GopiNadh22/jenkins-ci-cd-pipeline-aws-docker.git"
+                    branch: 'main',
+                    url: 'https://github.com/GopiNadh22/jenkins-ci-cd-pipeline-aws-docker.git'
                 )
             }
         }
 
+
         stage('Build-Maven') {
             when {
-                expression { params.action == 'create' }
+                expression {
+                    params.action == 'create'
+                }
             }
 
             steps {
                 dir("${params.AppName}") {
+
                     sh '''
-                        echo "===== PATH ====="
-                        echo "$PATH"
-
-                        echo "===== JAVA ====="
-                        which java
+                        echo "===== JAVA VERSION ====="
                         java -version
-
-                        echo "===== JAVAC ====="
-                        which javac
                         javac -version
 
-                        echo "===== JAVA HOME ====="
-                        echo "$JAVA_HOME"
-
-                        echo "===== MAVEN ====="
-                        which mvn
+                        echo "===== MAVEN VERSION ====="
                         mvn --version
 
                         echo "===== MAVEN BUILD ====="
@@ -88,13 +84,17 @@ pipeline {
             }
         }
 
+
         stage('DockerBuild and Push') {
             when {
-                expression { params.action == 'create' }
+                expression {
+                    params.action == 'create'
+                }
             }
 
             steps {
                 dir("${params.AppName}") {
+
                     dockerBuild(
                         "${params.ImageName}",
                         "${params.docker_repo}"
@@ -103,12 +103,16 @@ pipeline {
             }
         }
 
+
         stage('Docker-CleanUP') {
             when {
-                expression { params.action == 'create' }
+                expression {
+                    params.action == 'create'
+                }
             }
 
             steps {
+
                 dockerCleanup(
                     "${params.ImageName}",
                     "${params.docker_repo}"
@@ -116,12 +120,16 @@ pipeline {
             }
         }
 
+
         stage('Ansible Setup') {
             when {
-                expression { params.action == 'create' }
+                expression {
+                    params.action == 'create'
+                }
             }
 
             steps {
+
                 sh '''
                     ansible-playbook \
                     ${WORKSPACE}/kubernetes-configmap-reload/server_setup.yml
@@ -129,14 +137,18 @@ pipeline {
             }
         }
 
+
         stage('Create Deployment') {
             when {
-                expression { params.action == 'create' }
+                expression {
+                    params.action == 'create'
+                }
             }
 
             steps {
+
                 sh '''
-                    echo "Workspace: ${WORKSPACE}"
+                    echo "===== DEPLOYING APPLICATION ====="
 
                     kubectl apply -f \
                     ${WORKSPACE}/kubernetes-configmap-reload/kubernetes-configmap.yml
@@ -144,13 +156,19 @@ pipeline {
             }
         }
 
+
         stage('Wait for Pods') {
             when {
-                expression { params.action == 'create' }
+                expression {
+                    params.action == 'create'
+                }
             }
 
             steps {
+
                 sh '''
+                    echo "===== WAITING FOR DEPLOYMENT ====="
+
                     kubectl rollout status \
                     deployment/${AppName} \
                     --timeout=300s
@@ -158,13 +176,19 @@ pipeline {
             }
         }
 
+
         stage('Rollback Deployment') {
             when {
-                expression { params.action == 'rollback' }
+                expression {
+                    params.action == 'rollback'
+                }
             }
 
             steps {
+
                 sh '''
+                    echo "===== ROLLING BACK APPLICATION ====="
+
                     kubectl delete deployment ${AppName} \
                     --ignore-not-found=true
 
@@ -172,6 +196,23 @@ pipeline {
                     --ignore-not-found=true
                 '''
             }
+        }
+    }
+
+
+    post {
+
+        success {
+            echo "=========================================="
+            echo "PIPELINE COMPLETED SUCCESSFULLY"
+            echo "=========================================="
+        }
+
+        failure {
+            echo "=========================================="
+            echo "PIPELINE FAILED"
+            echo "Check the failed stage logs"
+            echo "=========================================="
         }
     }
 }
