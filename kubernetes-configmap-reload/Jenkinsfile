@@ -91,7 +91,7 @@ pipeline {
                         echo "MAVEN BUILD"
                         echo "======================================"
 
-                        mvn clean package -Dmaven.test.skip=true
+                        MAVEN_OPTS="-Xms128m -Xmx512m" mvn clean package -Dmaven.test.skip=true
                     '''
                 }
             }
