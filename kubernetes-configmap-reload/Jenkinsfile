@@ -33,7 +33,7 @@ pipeline {
         string(
             name: 'docker_repo',
             description: 'Name of Docker repository',
-            defaultValue: 'praveensingam1994'
+            defaultValue: 'gopinadh66'
         )
     }
 
