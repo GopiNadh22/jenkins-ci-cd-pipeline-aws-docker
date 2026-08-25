@@ -63,11 +63,22 @@ pipeline {
             steps {
                 dir("${params.AppName}") {
                     sh '''
-                        echo "===== JAVA VERSION ====="
+                        echo "===== PATH ====="
+                        echo "$PATH"
+
+                        echo "===== JAVA ====="
+                        which java
                         java -version
+
+                        echo "===== JAVAC ====="
+                        which javac
                         javac -version
 
-                        echo "===== MAVEN VERSION ====="
+                        echo "===== JAVA HOME ====="
+                        echo "$JAVA_HOME"
+
+                        echo "===== MAVEN ====="
+                        which mvn
                         mvn --version
 
                         echo "===== MAVEN BUILD ====="
